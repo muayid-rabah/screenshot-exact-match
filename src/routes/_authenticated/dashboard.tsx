@@ -35,7 +35,8 @@ const DAY_MS = 86_400_000;
 
 function Dashboard() {
   const { data } = useSuspenseQuery(dashboardQuery);
-  const { profile, records, terms, exams, deadlines, notifications } = data;
+  const { records, terms, exams, deadlines, notifications } = data;
+  const profile = data.profile!;
   const now = new Date();
   const currentTerm = terms.find((t) => t.is_current);
 
@@ -260,7 +261,7 @@ function HeroFact({ label, value, ltr }: { label: string; value: string; ltr?: b
   return <div><dt className="text-xs text-primary-foreground/60">{label}</dt><dd className="mt-0.5 font-semibold" dir={ltr ? "ltr" : undefined}>{value}</dd></div>;
 }
 
-function Metric({ icon: Icon, label, value, hint, accent, tone }: { icon: typeof Clock; label: string; value: string; hint: string; accent?: boolean; tone?: "warning" }) {
+function Metric({ icon: Icon, label, value, hint, accent, tone }: { icon: typeof Clock; label: string; value: string; hint: string; accent?: boolean; tone?: "warning" | undefined }) {
   return (
     <div className={cn("rounded-xl border bg-card p-4 shadow-card animate-rise sm:p-5", accent && "border-gold/60")}>
       <div className="flex items-center justify-between text-muted-foreground">

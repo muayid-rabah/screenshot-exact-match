@@ -25,6 +25,7 @@ export const Route = createFileRoute("/")({
 });
 
 type Mode = "signin" | "signup";
+type Errs = { uid?: string | undefined; password?: string | undefined; name?: string | undefined };
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Errs>({});
   const [forgotOpen, setForgotOpen] = useState(false);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ function LoginPage() {
   }, [navigate]);
 
   function validate() {
-    const e: Record<string, string> = {};
+    const e: Errs = {};
     if (!UNIVERSITY_ID_PATTERN.test(uid.trim())) e.uid = "الرقم الجامعي يتكون من 8 إلى 10 أرقام.";
     if (password.length < 8) e.password = "كلمة المرور يجب ألا تقل عن 8 أحرف.";
     if (mode === "signup" && name.trim().split(/\s+/).length < 2) e.name = "أدخل الاسم الثنائي على الأقل.";
@@ -150,7 +151,7 @@ function LoginPage() {
 }
 
 function Field({ id, label, icon: Icon, error, action, children }: {
-  id: string; label: string; icon: typeof User; error?: string; action?: React.ReactNode; children: React.ReactNode;
+  id: string; label: string; icon: typeof User; error?: string | undefined; action?: React.ReactNode | undefined; children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
