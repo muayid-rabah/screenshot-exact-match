@@ -96,8 +96,8 @@ function LoginPage() {
               </Field>
             )}
             <Field id="uid" label="الرقم الجامعي" icon={IdCard} error={errors.uid}>
-              <Input id="uid" inputMode="numeric" dir="ltr" value={uid} onChange={(e) => setUid(e.target.value.replace(/\D/g, ""))}
-                autoComplete="username" className="h-11 ps-10 text-end tabular tracking-widest" placeholder="20231234" maxLength={10} />
+              <Input id="uid" inputMode="numeric" value={uid} onChange={(e) => setUid(e.target.value.replace(/\D/g, ""))}
+                autoComplete="username" className="h-11 ps-10 tabular tracking-widest" placeholder="20231234" maxLength={10} />
             </Field>
             <Field id="password" label="كلمة المرور" icon={Lock} error={errors.password}
               action={mode === "signin" ? <button type="button" onClick={() => setForgotOpen(true)} className="text-xs font-medium text-primary hover:underline">نسيت كلمة المرور؟</button> : undefined}>
