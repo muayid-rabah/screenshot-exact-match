@@ -11,7 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedAbsencesRouteImport } from './routes/_authenticated/absences'
+import { Route as AuthenticatedAddDropRouteImport } from './routes/_authenticated/add-drop'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedExamsRouteImport } from './routes/_authenticated/exams'
+import { Route as AuthenticatedFinancialRouteImport } from './routes/_authenticated/financial'
+import { Route as AuthenticatedGpaRouteImport } from './routes/_authenticated/gpa'
+import { Route as AuthenticatedGradesRouteImport } from './routes/_authenticated/grades'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedOfferedCoursesRouteImport } from './routes/_authenticated/offered-courses'
+import { Route as AuthenticatedPlanRouteImport } from './routes/_authenticated/plan'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedRegistrationRouteImport } from './routes/_authenticated/registration'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,32 +36,197 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAbsencesRoute = AuthenticatedAbsencesRouteImport.update({
+  id: '/absences',
+  path: '/absences',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAddDropRoute = AuthenticatedAddDropRouteImport.update({
+  id: '/add-drop',
+  path: '/add-drop',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedExamsRoute = AuthenticatedExamsRouteImport.update({
+  id: '/exams',
+  path: '/exams',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFinancialRoute = AuthenticatedFinancialRouteImport.update({
+  id: '/financial',
+  path: '/financial',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGpaRoute = AuthenticatedGpaRouteImport.update({
+  id: '/gpa',
+  path: '/gpa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGradesRoute = AuthenticatedGradesRouteImport.update({
+  id: '/grades',
+  path: '/grades',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOfferedCoursesRoute =
+  AuthenticatedOfferedCoursesRouteImport.update({
+    id: '/offered-courses',
+    path: '/offered-courses',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanRoute = AuthenticatedPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRegistrationRoute =
+  AuthenticatedRegistrationRouteImport.update({
+    id: '/registration',
+    path: '/registration',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/absences': typeof AuthenticatedAbsencesRoute
+  '/add-drop': typeof AuthenticatedAddDropRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/assistant': typeof AuthenticatedAssistantRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/exams': typeof AuthenticatedExamsRoute
+  '/financial': typeof AuthenticatedFinancialRoute
+  '/gpa': typeof AuthenticatedGpaRoute
+  '/grades': typeof AuthenticatedGradesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/offered-courses': typeof AuthenticatedOfferedCoursesRoute
+  '/plan': typeof AuthenticatedPlanRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/registration': typeof AuthenticatedRegistrationRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/absences': typeof AuthenticatedAbsencesRoute
+  '/add-drop': typeof AuthenticatedAddDropRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/assistant': typeof AuthenticatedAssistantRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/exams': typeof AuthenticatedExamsRoute
+  '/financial': typeof AuthenticatedFinancialRoute
+  '/gpa': typeof AuthenticatedGpaRoute
+  '/grades': typeof AuthenticatedGradesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/offered-courses': typeof AuthenticatedOfferedCoursesRoute
+  '/plan': typeof AuthenticatedPlanRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/registration': typeof AuthenticatedRegistrationRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/absences': typeof AuthenticatedAbsencesRoute
+  '/_authenticated/add-drop': typeof AuthenticatedAddDropRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/exams': typeof AuthenticatedExamsRoute
+  '/_authenticated/financial': typeof AuthenticatedFinancialRoute
+  '/_authenticated/gpa': typeof AuthenticatedGpaRoute
+  '/_authenticated/grades': typeof AuthenticatedGradesRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/offered-courses': typeof AuthenticatedOfferedCoursesRoute
+  '/_authenticated/plan': typeof AuthenticatedPlanRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/registration': typeof AuthenticatedRegistrationRoute
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/absences'
+    | '/add-drop'
+    | '/admin'
+    | '/assistant'
+    | '/dashboard'
+    | '/exams'
+    | '/financial'
+    | '/gpa'
+    | '/grades'
+    | '/notifications'
+    | '/offered-courses'
+    | '/plan'
+    | '/profile'
+    | '/registration'
+    | '/schedule'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard'
-  id: '__root__' | '/' | '/_authenticated' | '/_authenticated/dashboard'
+  to:
+    | '/'
+    | '/absences'
+    | '/add-drop'
+    | '/admin'
+    | '/assistant'
+    | '/dashboard'
+    | '/exams'
+    | '/financial'
+    | '/gpa'
+    | '/grades'
+    | '/notifications'
+    | '/offered-courses'
+    | '/plan'
+    | '/profile'
+    | '/registration'
+    | '/schedule'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/_authenticated/absences'
+    | '/_authenticated/add-drop'
+    | '/_authenticated/admin'
+    | '/_authenticated/assistant'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/exams'
+    | '/_authenticated/financial'
+    | '/_authenticated/gpa'
+    | '/_authenticated/grades'
+    | '/_authenticated/notifications'
+    | '/_authenticated/offered-courses'
+    | '/_authenticated/plan'
+    | '/_authenticated/profile'
+    | '/_authenticated/registration'
+    | '/_authenticated/schedule'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -71,6 +250,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/absences': {
+      id: '/_authenticated/absences'
+      path: '/absences'
+      fullPath: '/absences'
+      preLoaderRoute: typeof AuthenticatedAbsencesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/add-drop': {
+      id: '/_authenticated/add-drop'
+      path: '/add-drop'
+      fullPath: '/add-drop'
+      preLoaderRoute: typeof AuthenticatedAddDropRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistant': {
+      id: '/_authenticated/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AuthenticatedAssistantRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -78,15 +285,113 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/exams': {
+      id: '/_authenticated/exams'
+      path: '/exams'
+      fullPath: '/exams'
+      preLoaderRoute: typeof AuthenticatedExamsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financial': {
+      id: '/_authenticated/financial'
+      path: '/financial'
+      fullPath: '/financial'
+      preLoaderRoute: typeof AuthenticatedFinancialRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gpa': {
+      id: '/_authenticated/gpa'
+      path: '/gpa'
+      fullPath: '/gpa'
+      preLoaderRoute: typeof AuthenticatedGpaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/grades': {
+      id: '/_authenticated/grades'
+      path: '/grades'
+      fullPath: '/grades'
+      preLoaderRoute: typeof AuthenticatedGradesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/offered-courses': {
+      id: '/_authenticated/offered-courses'
+      path: '/offered-courses'
+      fullPath: '/offered-courses'
+      preLoaderRoute: typeof AuthenticatedOfferedCoursesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/plan': {
+      id: '/_authenticated/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof AuthenticatedPlanRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/registration': {
+      id: '/_authenticated/registration'
+      path: '/registration'
+      fullPath: '/registration'
+      preLoaderRoute: typeof AuthenticatedRegistrationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAbsencesRoute: typeof AuthenticatedAbsencesRoute
+  AuthenticatedAddDropRoute: typeof AuthenticatedAddDropRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedExamsRoute: typeof AuthenticatedExamsRoute
+  AuthenticatedFinancialRoute: typeof AuthenticatedFinancialRoute
+  AuthenticatedGpaRoute: typeof AuthenticatedGpaRoute
+  AuthenticatedGradesRoute: typeof AuthenticatedGradesRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedOfferedCoursesRoute: typeof AuthenticatedOfferedCoursesRoute
+  AuthenticatedPlanRoute: typeof AuthenticatedPlanRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedRegistrationRoute: typeof AuthenticatedRegistrationRoute
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAbsencesRoute: AuthenticatedAbsencesRoute,
+  AuthenticatedAddDropRoute: AuthenticatedAddDropRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedExamsRoute: AuthenticatedExamsRoute,
+  AuthenticatedFinancialRoute: AuthenticatedFinancialRoute,
+  AuthenticatedGpaRoute: AuthenticatedGpaRoute,
+  AuthenticatedGradesRoute: AuthenticatedGradesRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedOfferedCoursesRoute: AuthenticatedOfferedCoursesRoute,
+  AuthenticatedPlanRoute: AuthenticatedPlanRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedRegistrationRoute: AuthenticatedRegistrationRoute,
+  AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

@@ -1,298 +1,538 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
-  Clock, MapPin, CalendarClock, BookOpenCheck, CalendarDays, Calculator, Sparkles, Map, Receipt,
-  AlertTriangle, CheckCircle2, TrendingUp, Layers, UserRound, GraduationCap,
+  Clock,
+  MapPin,
+  CalendarClock,
+  BookOpenCheck,
+  CalendarDays,
+  Sparkles,
+  Map,
+  Receipt,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  Layers,
+  UserRound,
+  GraduationCap,
+  Wallet,
+  UserX,
+  FileCheck2,
+  ChevronLeft,
+  ArrowUpRight,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { toast } from "sonner";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { AppShell } from "@/components/app/AppShell";
-import { Skeleton } from "@/components/ui/skeleton";
-import { dashboardQuery } from "@/lib/student-queries";
-import { academicStanding, computeGPA, hoursSummary, lastTermGPA, nextUpcoming, sessionsForDay, type CourseRecord } from "@/lib/academic";
+import { useStudentStore } from "@/lib/student-store";
+import { calculateStudentProgress } from "@/services/academicEngine";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "لوحة الطالب | جامعة مرشدي" },
-      { name: "description", content: "نظرة شاملة على وضعك الأكاديمي في جامعة مرشدي." },
-      { property: "og:title", content: "لوحة الطالب — جامعة مرشدي" },
+      { title: "لوحة الطالب | جامعة NextAura" },
+      { name: "description", content: "نظرة شاملة على وضعك الأكاديمي وجدولك في جامعة NextAura." },
+      { property: "og:title", content: "لوحة الطالب — جامعة NextAura" },
       { property: "og:description", content: "الساعات، المعدلات، محاضرات اليوم، والامتحانات القادمة." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(dashboardQuery),
-  pendingComponent: DashboardSkeleton,
   component: Dashboard,
 });
 
-const fmtDate = (d: string | Date, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("ar-JO-u-nu-latn", opts).format(new Date(d));
-const fmtTime = (t: string) => t.slice(0, 5);
-const DAY_MS = 86_400_000;
+export function Dashboard() {
+  const { activeStudent, courses, academicDates, notifications } = useStudentStore();
+  const progress = calculateStudentProgress(activeStudent, courses);
 
-function Dashboard() {
-  const { data } = useSuspenseQuery(dashboardQuery);
-  const { records, terms, exams, deadlines, notifications } = data;
-  const profile = data.profile;
-  const now = new Date();
-  const currentTerm = terms.find((t) => t.is_current);
+  const history = activeStudent.semesterHistory;
+  const latestSem = history[history.length - 1];
+  const activeSections = activeStudent.currentRegisteredSections;
 
-  const flat: (CourseRecord & { code: string; name: string; absences: number; sessions: any[] })[] = useMemo(
-    () => records.map((r: any) => ({
-      credits: r.course.credits, status: r.status, grade_points: r.grade_points, term_code: r.term_code,
-      category: r.course.category, code: r.course.code, name: r.course.name, absences: r.absences, sessions: r.course.course_sessions,
-    })),
-    [records],
+  // Next exam
+  const sortedExams = [...activeStudent.exams].sort((a, b) => a.date.localeCompare(b.date));
+  const nextExam = sortedExams[0];
+
+  // Absences
+  const totalAbsences = activeStudent.absences.reduce((acc, a) => acc + a.absencesCount, 0);
+  const warningAbsences = activeStudent.absences.filter(
+    (a) => a.status === 'تنبيه' || a.status === 'مرتفع',
   );
 
-  const gpa = computeGPA(flat);
-  const termGpa = lastTermGPA(flat);
-  const hours = hoursSummary(flat, profile.required_hours);
-  const current = flat.filter((r) => r.status === "current");
-  const absences = current.reduce((s, r) => s + r.absences, 0);
-  const alerts = notifications.filter((n) => n.level === "warning" || n.level === "danger");
-  const unread = notifications.filter((n) => !n.is_read).length;
+  // Today's lectures (Sunday = 0, etc.)
+  const now = new Date();
+  const dayNamesArabic: Record<number, string> = {
+    0: 'الأحد',
+    1: 'الاثنين',
+    2: 'الثلاثاء',
+    3: 'الأربعاء',
+    4: 'الخميس',
+    5: 'الجمعة',
+    6: 'السبت',
+  };
+  const currentDayName = dayNamesArabic[now.getDay()] || 'الأحد';
+  const todayLectures = useMemo(() => {
+    return activeSections.filter(
+      (sec) =>
+        sec.days.includes(currentDayName) ||
+        (sec.daysArray && sec.daysArray.includes(currentDayName as any)),
+    );
+  }, [activeSections, currentDayName]);
 
-  const currentCodes = new Set(current.map((c) => c.code));
-  const todaySessions = sessionsForDay(current.flatMap((c) => c.sessions.map((s) => ({ ...s, code: c.code, name: c.name }))), now);
-  const nextExam = nextUpcoming(exams.filter((e: any) => currentCodes.has(e.course.code)), (e) => e.starts_at, now);
-  const upcomingDeadlines = deadlines.filter((d) => new Date(d.due_at) > now).slice(0, 4);
+  // GPA chart timeline
+  const gpaTimeline = useMemo(() => {
+    return history.map((sem) => ({
+      name: sem.semesterName.replace('الفصل ', '').slice(0, 15),
+      termGpa: sem.semesterGpa,
+      cumGpa: sem.cumulativeGpa,
+      hours: sem.passedHours,
+    }));
+  }, [history]);
 
-  const categoryProgress = useMemo(() => {
-    const req: Record<string, number> = { "متطلبات جامعة": 27, "متطلبات كلية": 21, "متطلبات تخصص إجبارية": 66, "متطلبات تخصص اختيارية": 18 };
-    return Object.entries(req).map(([cat, need]) => {
-      const done = flat.filter((r) => r.category === cat && r.status === "completed").reduce((s, r) => s + r.credits, 0);
-      return { cat, need, done, pct: Math.min(Math.round((done / need) * 100), 100) };
-    });
-  }, [flat]);
+  // Requirement categories
+  const categoryChartData = useMemo(() => {
+    const groups = progress.groupRequirements;
+    const completed = progress.groupCompletedHours;
+    return Object.entries(groups).map(([name, need]) => ({
+      name,
+      done: completed[name as keyof typeof completed] || 0,
+      need,
+      pct: Math.min(100, Math.round(((completed[name as keyof typeof completed] || 0) / need) * 100)),
+    }));
+  }, [progress]);
 
-  const timeline = useMemo(() => {
-    const done = terms.filter((t) => flat.some((r) => r.term_code === t.code && r.status === "completed"));
-    let cumHours = 0;
-    return done.map((t) => {
-      const upto = flat.filter((r) => r.status === "completed" && r.term_code <= t.code);
-      cumHours = upto.reduce((s, r) => s + r.credits, 0);
-      return { term: t.name.replace("الفصل ", "").replace(/ (\d{4})\/(\d{4})/, " $1"), gpa: computeGPA(upto), termGpa: computeGPA(flat.filter((r) => r.term_code === t.code)), hours: cumHours };
-    });
-  }, [terms, flat]);
-
-  const firstName = profile.full_name.split(" ")[0];
+  const firstName = activeStudent.name.split(' ')[0];
+  const unreadNotifs = notifications.filter((n) => n.unread).length;
 
   return (
-    <AppShell name={profile.full_name} uid={profile.university_id} unread={unread}>
-      <div className="mx-auto max-w-7xl space-y-6">
-        {/* Hero */}
-        <section className="relative overflow-hidden rounded-2xl bg-hero-gradient p-6 text-primary-foreground shadow-elevated animate-rise sm:p-8">
-          <div aria-hidden className="absolute -start-20 -top-24 size-72 rounded-full border border-gold/30" />
-          <div aria-hidden className="absolute -start-6 -top-10 size-44 rounded-full border border-gold/20" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <AppShell name={activeStudent.name} uid={activeStudent.universityId} unread={unreadNotifs}>
+      <div className="mx-auto max-w-7xl space-y-6 animate-fade-in text-right">
+        {/* Welcome Banner */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0b132b] via-[#1c2541] to-[#1e1b4b] p-6 text-white shadow-xl sm:p-8 border border-white/10">
+          <div aria-hidden className="absolute -start-16 -top-20 size-64 rounded-full border border-cyan-500/20 pointer-events-none" />
+          <div aria-hidden className="absolute -end-20 -bottom-24 size-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm text-primary-foreground/70">{currentTerm?.name}</p>
-              <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">أهلاً بك، {firstName}</h1>
-              <p className="mt-2 text-primary-foreground/80">{profile.major} · {profile.college}</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30 mb-2">
+                <Sparkles className="size-3.5" />
+                <span>الفصل الأول 2026/2027 · جامعة NextAura</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                أهلاً بك، {firstName} 👋
+              </h1>
+              <p className="mt-2 text-sm text-slate-300 max-w-xl leading-relaxed">
+                {activeStudent.major} · {activeStudent.faculty} · الخطة الدراسية ({activeStudent.studyPlan})
+              </p>
             </div>
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
-              <HeroFact label="الحالة الأكاديمية" value={profile.academic_status} />
-              <HeroFact label="المرشد الأكاديمي" value={profile.advisor_name} />
-              <HeroFact label="رقم الخطة" value={profile.plan_no} ltr />
-              <HeroFact label="آخر تحديث" value={fmtDate(data.fetchedAt, { hour: "2-digit", minute: "2-digit" })} />
+
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs sm:grid-cols-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur">
+              <HeroFact label="الحالة الأكاديمية" value={activeStudent.academicStatus} highlight />
+              <HeroFact label="المرشد الأكاديمي" value={activeStudent.academicAdvisor} />
+              <HeroFact label="سنة القبول" value={String(activeStudent.admissionYear)} />
+              <HeroFact label="الرقم الجامعي" value={activeStudent.universityId} ltr />
             </dl>
           </div>
         </section>
 
-        {/* Metrics */}
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="المؤشرات الأكاديمية">
-          <Metric icon={TrendingUp} label="المعدل التراكمي" value={gpa.toFixed(2)} hint={academicStanding(gpa)} accent />
-          <Metric icon={GraduationCap} label="المعدل الفصلي (آخر فصل)" value={termGpa.toFixed(2)} hint="من 4.00" />
-          <Metric icon={Layers} label="الساعات المنجزة" value={`${hours.completed}`} hint={`متبقٍ ${hours.remaining} من ${profile.required_hours}`} />
-          <Metric icon={BookOpenCheck} label="المسجلة حالياً" value={`${hours.current}`} hint={`${current.length} مواد`} />
-          <Metric icon={CheckCircle2} label="الإنجاز نحو التخرج" value={`${hours.progress}%`} hint="من إجمالي الخطة" />
-          <Metric icon={UserRound} label="الغيابات" value={`${absences}`} hint="هذا الفصل" tone={absences >= 3 ? "warning" : undefined} />
-          <Metric icon={AlertTriangle} label="التنبيهات الأكاديمية" value={`${alerts.length}`} hint="تحتاج متابعة" tone={alerts.length ? "warning" : undefined} />
-          <Metric icon={CalendarClock} label="أقرب امتحان" value={nextExam ? `${Math.ceil((new Date(nextExam.starts_at).getTime() - now.getTime()) / DAY_MS)} يوم` : "—"} hint={nextExam ? (nextExam as any).course.name : "لا امتحانات قادمة"} />
-        </section>
+        {/* Quick KPI Stat Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+          {/* المعدل التراكمي */}
+          <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs font-bold">المعدل التراكمي</span>
+              <TrendingUp className="size-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="text-2xl font-black font-mono text-purple-600 dark:text-purple-400">
+              {latestSem?.cumulativeGpa ? `${latestSem.cumulativeGpa.toFixed(1)}%` : '—'}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+              الفصلي: {latestSem?.semesterGpa ? `${latestSem.semesterGpa.toFixed(1)}%` : '—'}
+            </div>
+          </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Today */}
-          <Card title="محاضرات اليوم" subtitle={fmtDate(now, { weekday: "long", day: "numeric", month: "long" })} className="lg:col-span-2">
-            {todaySessions.length === 0 ? (
-              <Empty icon={CalendarDays} text="لا توجد محاضرات اليوم. استغل الوقت للمراجعة." />
-            ) : (
-              <ol className="space-y-3">
-                {todaySessions.map((s: any) => {
-                  const [sh, sm] = s.start_time.split(":").map(Number);
-                  const [eh, em] = s.end_time.split(":").map(Number);
-                  const mins = now.getHours() * 60 + now.getMinutes();
-                  const state = mins >= eh * 60 + em ? "done" : mins >= sh * 60 + sm ? "live" : "next";
-                  return (
-                    <li key={s.id} className={cn("flex items-center gap-4 rounded-xl border p-4", state === "live" && "border-primary bg-secondary", state === "done" && "opacity-55")}>
-                      <div className="w-16 text-center tabular" dir="ltr"><div className="font-bold">{fmtTime(s.start_time)}</div><div className="text-xs text-muted-foreground">{fmtTime(s.end_time)}</div></div>
-                      <div className="h-10 w-px bg-border" />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold">{s.name} <span className="text-xs text-muted-foreground" dir="ltr">{s.code}</span></div>
-                        <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground"><span className="flex items-center gap-1"><MapPin className="size-3" />{s.room}</span><span>{s.instructor}</span></div>
-                      </div>
-                      <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", state === "live" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
-                        {state === "live" ? "جارية الآن" : state === "done" ? "انتهت" : "قادمة"}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-          </Card>
+          {/* الساعات المنجزة */}
+          <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs font-bold">الساعات المنجزة</span>
+              <GraduationCap className="size-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+              {progress.totalCompletedHours}
+              <span className="text-xs font-normal text-muted-foreground ms-1">ساعة</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+              المتبقي: {progress.remainingHours} ساعة
+            </div>
+          </div>
 
-          {/* Next exam */}
-          <Card title="أقرب امتحان">
-            {nextExam ? (
-              <div className="rounded-xl bg-ink-gradient p-5 text-ink-foreground">
-                <div className="text-xs text-gold">{(nextExam as any).kind}</div>
-                <div className="mt-1 text-xl font-bold">{(nextExam as any).course.name}</div>
-                <div className="mt-4 space-y-2 text-sm text-ink-foreground/80">
-                  <div className="flex items-center gap-2"><CalendarClock className="size-4 text-gold" />{fmtDate(nextExam.starts_at, { weekday: "long", day: "numeric", month: "long" })}</div>
-                  <div className="flex items-center gap-2"><Clock className="size-4 text-gold" />{fmtDate(nextExam.starts_at, { hour: "2-digit", minute: "2-digit" })}</div>
-                  <div className="flex items-center gap-2"><MapPin className="size-4 text-gold" />{(nextExam as any).room}</div>
+          {/* ساعات الفصل الحالي */}
+          <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs font-bold">ساعات هذا الفصل</span>
+              <BookOpenCheck className="size-4 text-primary" />
+            </div>
+            <div className="text-2xl font-black font-mono text-primary">
+              {activeSections.reduce((sum, s) => sum + s.credits, 0)}
+              <span className="text-xs font-normal text-muted-foreground ms-1">ساعة</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+              {activeSections.length} مساقات مسجلة
+            </div>
+          </div>
+
+          {/* نسبة الإنجاز */}
+          <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs font-bold">نسبة الخطة</span>
+              <Map className="size-4 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div className="text-2xl font-black font-mono text-cyan-600 dark:text-cyan-400">
+              {progress.completionPercentage}%
+            </div>
+            <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+              من {progress.totalPlanHours} ساعة
+            </div>
+          </div>
+
+          {/* إجمالي الغيابات */}
+          <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs font-bold">سجل الغيابات</span>
+              <UserX className={cn("size-4", totalAbsences > 5 ? "text-destructive" : "text-amber-500")} />
+            </div>
+            <div className={cn("text-2xl font-black font-mono", totalAbsences > 5 ? "text-destructive" : "text-amber-600")}>
+              {totalAbsences}
+              <span className="text-xs font-normal text-muted-foreground ms-1">محاضرة</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+              {warningAbsences.length > 0 ? `⚠️ ${warningAbsences.length} مواد إنذار` : 'وضع الحضور منتظم'}
+            </div>
+          </div>
+
+          {/* الرصيد المالي المستحق */}
+          <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs font-bold">الرصيد المالي</span>
+              <Wallet className="size-4 text-emerald-600" />
+            </div>
+            <div className="text-2xl font-black font-mono text-foreground">
+              {activeStudent.financialSummary.currentBalance.toFixed(0)}
+              <span className="text-xs font-normal text-muted-foreground ms-1">د.أ</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+              {activeStudent.financialSummary.currentBalance > 0 ? 'مستحق الدفع' : 'مسدد بالكامل'}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Navigation Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link
+            to="/registration"
+            className="flex items-center gap-3 p-3.5 rounded-2xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all group"
+          >
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition">
+              <BookOpenCheck className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground">التسجيل الإلكتروني</div>
+              <div className="text-[10px] text-muted-foreground">إضافة وحذف وتغيير الشعب</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/schedule"
+            className="flex items-center gap-3 p-3.5 rounded-2xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all group"
+          >
+            <div className="size-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition">
+              <CalendarDays className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground">الجدول الأسبوعي</div>
+              <div className="text-[10px] text-muted-foreground">جدول المحاضرات والقاعات</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/gpa"
+            className="flex items-center gap-3 p-3.5 rounded-2xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all group"
+          >
+            <div className="size-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
+              <TrendingUp className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground">محاكاة المعدل</div>
+              <div className="text-[10px] text-muted-foreground">حساب المعدل التراكمي المتوقع</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/assistant"
+            className="flex items-center gap-3 p-3.5 rounded-2xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all group"
+          >
+            <div className="size-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground">المرشد الذكي AI</div>
+              <div className="text-[10px] text-muted-foreground">استفسارات أكاديمية فورية</div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Main Grid: Schedule & Nearest Exam vs Charts & Academic standing */}
+        <div className="grid gap-6 lg:grid-cols-12 items-start">
+          {/* Left Column (7 cols): Today's Classes & Nearest Exam */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Nearest Exam Card */}
+            {nextExam && (
+              <div className="p-5 rounded-3xl border bg-gradient-to-r from-amber-500/10 via-card to-card shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center gap-1">
+                      <Sparkles className="size-3" />
+                      أقرب امتحان قادم
+                    </span>
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {nextExam.examType}
+                    </span>
+                  </div>
+                  <Link to="/exams" className="text-xs font-bold text-primary flex items-center gap-0.5 hover:underline">
+                    <span>جدول الامتحانات</span>
+                    <ChevronLeft className="size-3.5" />
+                  </Link>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">{nextExam.courseName}</h3>
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">{nextExam.courseCode}</p>
+                  </div>
+                  <div className="text-start sm:text-end text-xs space-y-0.5">
+                    <div className="font-bold text-foreground font-mono flex items-center gap-1.5 justify-end">
+                      <CalendarDays className="size-3.5 text-muted-foreground" />
+                      {nextExam.dayName}، {nextExam.date}
+                    </div>
+                    <div className="text-muted-foreground font-mono flex items-center gap-1.5 justify-end">
+                      <Clock className="size-3.5 text-muted-foreground" />
+                      {nextExam.time} · قاعة {nextExam.room}
+                    </div>
+                  </div>
                 </div>
               </div>
-            ) : <Empty icon={CalendarClock} text="لا توجد امتحانات قادمة." />}
-          </Card>
+            )}
 
-          {/* Graduation progress */}
-          <Card title="التقدم نحو التخرج" subtitle="حسب مجموعات المتطلبات">
-            <div className="relative mx-auto h-44 w-44">
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie data={[{ v: hours.completed }, { v: hours.remaining }]} dataKey="v" innerRadius="74%" outerRadius="100%" startAngle={90} endAngle={-270} stroke="none">
-                    <Cell fill="var(--color-primary)" /><Cell fill="var(--color-muted)" />
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-extrabold tabular">{hours.progress}%</span><span className="text-xs text-muted-foreground">{hours.completed}/{profile.required_hours} ساعة</span></div>
+            {/* Today's Lectures */}
+            <div className="rounded-3xl border bg-card p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b">
+                <div className="flex items-center gap-2">
+                  <Clock className="size-5 text-primary" />
+                  <h2 className="text-base font-bold text-foreground">
+                    محاضرات اليوم ({currentDayName})
+                  </h2>
+                </div>
+                <Link to="/schedule" className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5">
+                  <span>عرض الجدول الكامل</span>
+                  <ChevronLeft className="size-3.5" />
+                </Link>
+              </div>
+
+              {todayLectures.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  <p>لا توجد محاضرات مقررة لليوم ({currentDayName}). استمتع بيومك الأكاديمي أو راجع خطتك الدراسية!</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {todayLectures.map((sec) => (
+                    <div
+                      key={sec.id}
+                      className="flex items-center justify-between p-3.5 rounded-2xl border bg-muted/30 hover:bg-muted/60 transition"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-foreground">{sec.courseName}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-primary/10 text-primary font-mono font-bold">
+                            شعبة {sec.sectionNumber}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          المدرس: {sec.instructor} · القاعة: {sec.room}
+                        </p>
+                      </div>
+
+                      <div className="text-start sm:text-end">
+                        <div className="text-xs font-mono font-bold text-foreground dir-ltr">
+                          {sec.startTime} - {sec.endTime}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {sec.credits} ساعات معتمدة
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <ul className="mt-5 space-y-3">
-              {categoryProgress.map((c) => (
-                <li key={c.cat}>
-                  <div className="mb-1 flex justify-between text-xs"><span>{c.cat}</span><span className="tabular text-muted-foreground">{c.done}/{c.need}</span></div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gold" style={{ width: `${c.pct}%` }} /></div>
-                </li>
-              ))}
-            </ul>
-          </Card>
 
-          {/* Timeline */}
-          <Card title="الخط الزمني الأكاديمي" subtitle="تطور المعدل التراكمي منذ الالتحاق" className="lg:col-span-2">
-            {timeline.length === 0 ? <Empty icon={TrendingUp} text="لا توجد فصول مكتملة بعد." /> : (
-              <div className="h-64" dir="ltr">
-                <ResponsiveContainer>
-                  <LineChart data={timeline} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
-                    <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                    <XAxis dataKey="term" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} reversed />
-                    <YAxis domain={[2, 4]} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} orientation="right" />
-                    <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, direction: "rtl" }}
-                      formatter={(v: number, k: string) => [v.toFixed(2), k === "gpa" ? "التراكمي" : "الفصلي"]} />
-                    <Line type="monotone" dataKey="termGpa" stroke="var(--color-gold)" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="gpa" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4 }} />
+            {/* GPA Performance Chart */}
+            <div className="rounded-3xl border bg-card p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b">
+                <div>
+                  <h2 className="text-base font-bold text-foreground">تطور المعدل الفصلي والتراكمي</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">مسار الأداء الأكاديمي عبر الفصول الدراسية</p>
+                </div>
+                <Link to="/grades" className="text-xs font-bold text-primary hover:underline">
+                  كشف العلامات
+                </Link>
+              </div>
+
+              <div className="h-56 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={gpaTimeline}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[50, 100]} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      formatter={(val: any) => [`${Number(val).toFixed(1)}%`, '']}
+                      contentStyle={{ borderRadius: 12, direction: 'rtl', fontSize: 12 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="cumGpa"
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      name="المعدل التراكمي"
+                      dot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="termGpa"
+                      stroke="#06b6d4"
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                      name="المعدل الفصلي"
+                      dot={{ r: 3 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            )}
-          </Card>
-
-          {/* Quick actions */}
-          <Card title="إجراءات سريعة">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { icon: BookOpenCheck, label: "تسجيل المواد" }, { icon: CalendarDays, label: "عرض الجدول" },
-                { icon: Calculator, label: "المعدل المتوقع" }, { icon: Sparkles, label: "مرشدي الذكي" },
-                { icon: Map, label: "عرض الخطة" }, { icon: Receipt, label: "كشف الحساب" },
-              ].map((a) => (
-                <button key={a.label} onClick={() => toast.info(`${a.label}: هذه الخدمة قيد الإنشاء في المرحلة القادمة.`)}
-                  className="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 text-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <a.icon className="size-5 text-primary" />{a.label}
-                </button>
-              ))}
             </div>
-          </Card>
+          </div>
 
-          {/* Deadlines */}
-          <Card title="المواعيد القادمة" className="lg:col-span-2">
-            {upcomingDeadlines.length === 0 ? <Empty icon={CalendarClock} text="لا مواعيد قادمة." /> : (
-              <ul className="divide-y">
-                {upcomingDeadlines.map((d) => {
-                  const days = Math.ceil((new Date(d.due_at).getTime() - now.getTime()) / DAY_MS);
-                  return (
-                    <li key={d.id} className="flex items-center gap-4 py-3">
-                      <div className="flex size-12 flex-col items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                        <span className="text-lg font-bold leading-none tabular">{fmtDate(d.due_at, { day: "numeric" })}</span>
-                        <span className="text-[10px]">{fmtDate(d.due_at, { month: "short" })}</span>
-                      </div>
-                      <div className="flex-1 font-medium">{d.title}</div>
-                      <span className={cn("rounded-full px-2.5 py-1 text-xs", days <= 14 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground")}>بعد {days} يوم</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
+          {/* Right Column (5 cols): Plan Breakdown & Academic Deadlines */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Degree Plan Progress Categories */}
+            <div className="rounded-3xl border bg-card p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b">
+                <div>
+                  <h2 className="text-base font-bold text-foreground">إنجاز الخطة الدراسية</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">توزيع الساعات المنجزة حسب فئات الخطة</p>
+                </div>
+                <Link to="/plan" className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5">
+                  <span>الخطة كاملة</span>
+                  <ChevronLeft className="size-3.5" />
+                </Link>
+              </div>
 
-          {/* Alerts */}
-          <Card title="التنبيهات">
-            {notifications.length === 0 ? <Empty icon={CheckCircle2} text="لا توجد تنبيهات." /> : (
-              <ul className="space-y-3">
-                {notifications.map((n) => (
-                  <li key={n.id} className={cn("rounded-lg border-s-4 bg-muted/50 p-3", n.level === "warning" ? "border-warning" : n.level === "success" ? "border-success" : "border-info")}>
-                    <div className="text-sm font-semibold">{n.title}</div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
-                  </li>
+              <div className="space-y-3">
+                {categoryChartData.map((cat) => (
+                  <div key={cat.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground truncate max-w-[200px]">{cat.name}</span>
+                      <span className="text-muted-foreground font-mono">
+                        {cat.done} / {cat.need} ساعة ({cat.pct}%)
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-l from-primary to-cyan-500 transition-all duration-500"
+                        style={{ width: `${cat.pct}%` }}
+                      />
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            )}
-          </Card>
+              </div>
+            </div>
+
+            {/* Academic Calendar Dates */}
+            <div className="rounded-3xl border bg-card p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b">
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="size-5 text-primary" />
+                  <h2 className="text-base font-bold text-foreground">مواعيد التقويم الأكاديمي</h2>
+                </div>
+                <Link to="/add-drop" className="text-xs font-bold text-primary hover:underline">
+                  المزيد
+                </Link>
+              </div>
+
+              <div className="space-y-2.5">
+                {academicDates.slice(0, 4).map((d) => (
+                  <div key={d.id} className="p-3 rounded-2xl border bg-muted/20 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-foreground">{d.title}</span>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                          d.status === 'مفتوح الآن'
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                        )}
+                      >
+                        {d.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 font-bold dir-ltr text-end">
+                      {d.date}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-normal">{d.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </AppShell>
   );
 }
 
-function HeroFact({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
-  return <div><dt className="text-xs text-primary-foreground/60">{label}</dt><dd className="mt-0.5 font-semibold" dir={ltr ? "ltr" : undefined}>{value}</dd></div>;
-}
-
-function Metric({ icon: Icon, label, value, hint, accent, tone }: { icon: typeof Clock; label: string; value: string; hint: string; accent?: boolean; tone?: "warning" | undefined }) {
+function HeroFact({
+  label,
+  value,
+  ltr,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  ltr?: boolean;
+  highlight?: boolean;
+}) {
   return (
-    <div className={cn("rounded-xl border bg-card p-4 shadow-card animate-rise sm:p-5", accent && "border-gold/60")}>
-      <div className="flex items-center justify-between text-muted-foreground">
-        <span className="text-xs font-medium">{label}</span>
-        <Icon className={cn("size-4", accent ? "text-gold" : tone === "warning" ? "text-warning" : "text-primary")} />
-      </div>
-      <div className="mt-3 text-2xl font-extrabold tabular sm:text-3xl">{value}</div>
-      <div className="mt-1 truncate text-xs text-muted-foreground">{hint}</div>
-    </div>
-  );
-}
-
-function Card({ title, subtitle, className, children }: { title: string; subtitle?: string; className?: string; children: React.ReactNode }) {
-  return (
-    <section className={cn("rounded-2xl border bg-card p-5 shadow-card sm:p-6", className)}>
-      <header className="mb-4"><h2 className="text-lg font-bold">{title}</h2>{subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}</header>
-      {children}
-    </section>
-  );
-}
-
-function Empty({ icon: Icon, text }: { icon: typeof Clock; text: string }) {
-  return <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground"><Icon className="size-8 opacity-40" />{text}</div>;
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 p-8">
-      <Skeleton className="h-44 rounded-2xl" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
-      <div className="grid gap-6 lg:grid-cols-3"><Skeleton className="h-72 rounded-2xl lg:col-span-2" /><Skeleton className="h-72 rounded-2xl" /></div>
+    <div>
+      <dt className="text-[11px] text-slate-300 font-medium">{label}</dt>
+      <dd
+        className={cn(
+          "font-bold truncate mt-0.5",
+          highlight ? "text-cyan-300 font-extrabold" : "text-white",
+          ltr && "font-mono",
+        )}
+        dir={ltr ? "ltr" : undefined}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

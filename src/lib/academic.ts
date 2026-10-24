@@ -1,6 +1,6 @@
 export type CourseRecord = {
   credits: number;
-  status: "completed" | "current" | string;
+  status: 'completed' | 'current' | string;
   grade_points: number | null;
   term_code: string;
   category: string;
@@ -8,7 +8,7 @@ export type CourseRecord = {
 
 /** Credit-weighted GPA over completed records with grades (4.0 scale). */
 export function computeGPA(records: CourseRecord[]): number {
-  const graded = records.filter((r) => r.status === "completed" && r.grade_points != null);
+  const graded = records.filter((r) => r.status === 'completed' && r.grade_points != null);
   const hours = graded.reduce((s, r) => s + r.credits, 0);
   if (hours === 0) return 0;
   const points = graded.reduce((s, r) => s + r.credits * Number(r.grade_points), 0);
@@ -17,25 +17,33 @@ export function computeGPA(records: CourseRecord[]): number {
 
 /** GPA of the most recent completed term. */
 export function lastTermGPA(records: CourseRecord[]): number {
-  const terms = [...new Set(records.filter((r) => r.status === "completed").map((r) => r.term_code))].sort();
+  const terms = [...new Set(records.filter((r) => r.status === 'completed').map((r) => r.term_code))].sort();
   const last = terms.at(-1);
   return last ? computeGPA(records.filter((r) => r.term_code === last)) : 0;
 }
 
 export function hoursSummary(records: CourseRecord[], required: number) {
-  const completed = records.filter((r) => r.status === "completed").reduce((s, r) => s + r.credits, 0);
-  const current = records.filter((r) => r.status === "current").reduce((s, r) => s + r.credits, 0);
+  const completed = records.filter((r) => r.status === 'completed').reduce((s, r) => s + r.credits, 0);
+  const current = records.filter((r) => r.status === 'current').reduce((s, r) => s + r.credits, 0);
   const remaining = Math.max(required - completed, 0);
   const progress = required > 0 ? Math.min(Math.round((completed / required) * 100), 100) : 0;
   return { completed, current, remaining, progress };
 }
 
 export function academicStanding(gpa: number): string {
-  if (gpa >= 3.65) return "امتياز";
-  if (gpa >= 3.0) return "جيد جداً";
-  if (gpa >= 2.5) return "جيد";
-  if (gpa >= 2.0) return "مقبول";
-  return "إنذار أكاديمي";
+  // Supports both 4.0 scale and 100% percentage scale
+  if (gpa > 4.0) {
+    if (gpa >= 84) return 'امتياز (مرتبة الشرف)';
+    if (gpa >= 76) return 'جيد جداً';
+    if (gpa >= 68) return 'جيد';
+    if (gpa >= 60) return 'مقبول';
+    return 'إنذار أكاديمي';
+  }
+  if (gpa >= 3.65) return 'امتياز (مرتبة الشرف)';
+  if (gpa >= 3.0) return 'جيد جداً';
+  if (gpa >= 2.5) return 'جيد';
+  if (gpa >= 2.0) return 'مقبول';
+  return 'إنذار أكاديمي';
 }
 
 /** Returns the soonest item whose date is strictly in the future. */
@@ -48,12 +56,15 @@ export function nextUpcoming<T>(items: T[], getDate: (t: T) => string | Date, no
 }
 
 /** Sessions held on the given date's weekday (0 = Sunday), sorted by start time. */
-export function sessionsForDay<T extends { weekday: number; start_time: string }>(sessions: T[], date: Date = new Date()): T[] {
+export function sessionsForDay<T extends { weekday: number; start_time: string }>(
+  sessions: T[],
+  date: Date = new Date(),
+): T[] {
   return sessions.filter((s) => s.weekday === date.getDay()).sort((a, b) => a.start_time.localeCompare(b.start_time));
 }
 
 export function idToEmail(universityId: string): string {
-  return `${universityId.trim().toLowerCase()}@students.morshidi.edu`;
+  return `${universityId.trim().toLowerCase()}@students.nextaura.edu`;
 }
 
 export const UNIVERSITY_ID_PATTERN = /^\d{8,10}$/;
