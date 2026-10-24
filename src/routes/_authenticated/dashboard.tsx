@@ -36,7 +36,7 @@ const DAY_MS = 86_400_000;
 function Dashboard() {
   const { data } = useSuspenseQuery(dashboardQuery);
   const { records, terms, exams, deadlines, notifications } = data;
-  const profile = data.profile!;
+  const profile = data.profile;
   const now = new Date();
   const currentTerm = terms.find((t) => t.is_current);
 

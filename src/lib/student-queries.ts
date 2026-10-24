@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 async function must<T>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>): Promise<T> {
   const { data, error } = await p;
@@ -20,6 +21,6 @@ export const dashboardQuery = queryOptions({
       must(supabase.from("deadlines").select("*").order("due_at")),
       must(supabase.from("notifications").select("*").order("created_at", { ascending: false })),
     ]);
-    return { profile, records, terms, exams, deadlines, notifications, fetchedAt: new Date().toISOString() };
+    return { profile: profile as unknown as Tables<"profiles">, records, terms, exams, deadlines, notifications, fetchedAt: new Date().toISOString() };
   },
 });
