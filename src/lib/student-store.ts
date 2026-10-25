@@ -11,7 +11,7 @@ import { demoStudents } from '../data/demoStudents';
 import { offeredCourseSections } from '../data/offeredSections';
 import { academicDates as initialDates } from '../data/academicDates';
 import rawPlanCourses from '../data/courses_plan12.json';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../integrations/supabase/client';
 import { checkSectionConflict, findScheduleConflicts, getRegistrationEligibility } from '../services/academicEngine';
 import { toast } from 'sonner';
 
